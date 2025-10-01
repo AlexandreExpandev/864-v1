@@ -11,7 +11,14 @@ const app = express();
 
 // Security middleware
 app.use(helmet());
-app.use(cors(config.api.cors));
+
+// CORS - deve vir ANTES das rotas
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*',
+  credentials: false,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
 // Request processing middleware
 app.use(compression());
@@ -32,6 +39,13 @@ app.use(notFoundMiddleware);
 // Error handling
 app.use(errorMiddleware);
 
+// Server startup
+const PORT = config.api.port || 3000;
+const server = app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+  console.log(`🔧 CORS Origin: ${process.env.CORS_ORIGIN || '*'}`);
+});
+
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, closing server gracefully');
@@ -39,13 +53,6 @@ process.on('SIGTERM', () => {
     console.log('Server closed');
     process.exit(0);
   });
-});
-
-// Server startup
-const server = app.listen(config.api.port, () => {
-  console.log(
-    `Server running on port ${config.api.port} in ${process.env.NODE_ENV || 'development'} mode`
-  );
 });
 
 export default server;
