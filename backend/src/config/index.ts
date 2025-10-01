@@ -19,7 +19,9 @@ export const config = {
     port: parseInt(process.env.PORT || '3000'),
     cors: {
       origin: process.env.CORS_ORIGIN || '*',
-      credentials: true,
+      credentials: false, // ⚠️ MUDANÇA: false para funcionar com origin: '*'
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
     },
   },
   security: {
