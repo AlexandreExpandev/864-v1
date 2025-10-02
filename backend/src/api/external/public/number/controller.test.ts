@@ -20,6 +20,9 @@ describe('Number Controller', () => {
       status: jest.fn().mockReturnThis(),
     };
     mockNext = jest.fn();
+    
+    // Limpar mocks antes de cada teste
+    jest.clearAllMocks();
   });
 
   describe('listHandler', () => {
@@ -67,8 +70,10 @@ describe('Number Controller', () => {
     });
 
     it('should return 404 when number not found', async () => {
-      mockRequest.params = { id: '11' };
-
+      // ✅ ID válido (dentro do range 1-10) mas que não existe no banco
+      mockRequest.params = { id: '7' };
+      
+      // ✅ Mock retorna null (número não encontrado)
       (numberService.numberGet as jest.Mock).mockResolvedValue(null);
 
       await getHandler(mockRequest as Request, mockResponse as Response, mockNext);
@@ -84,12 +89,49 @@ describe('Number Controller', () => {
       });
     });
 
-    it('should return 400 for invalid number', async () => {
+    it('should return 400 for invalid number format', async () => {
+      // ID com formato inválido (não numérico)
       mockRequest.params = { id: 'abc' };
 
       await getHandler(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        error: {
+          message: 'Invalid number. Must be between 1 and 10.',
+          details: undefined,
+        },
+        timestamp: expect.any(String),
+      });
+    });
+
+    it('should return 400 for number out of range', async () => {
+      // ID numérico mas fora do range permitido (1-10)
+      mockRequest.params = { id: '11' };
+
+      await getHandler(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        error: {
+          message: 'Invalid number. Must be between 1 and 10.',
+          details: undefined,
+        },
+        timestamp: expect.any(String),
+      });
+    });
+
+    it('should call next with error on unexpected failure', async () => {
+      const error = new Error('Database error');
+      mockRequest.params = { id: '5' };
+      
+      (numberService.numberGet as jest.Mock).mockRejectedValue(error);
+
+      await getHandler(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(error);
     });
   });
 });
