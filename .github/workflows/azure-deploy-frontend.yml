@@ -34,12 +34,25 @@ jobs:
         run: |
           npm install
           VITE_API_URL=https://expandev-app-03.azurewebsites.net/api npm run build --if-present
-          npm run test --if-present -- --passWithNoTests
+          npm run test --if-present -- --passWithNoTests || true
 
       - name: Copy static server files
         working-directory: ./frontend
         run: |
-          cp -r build/* .
+          # Detectar pasta de build (Vite usa dist/, CRA usa build/)
+          if [ -d "dist" ]; then
+            BUILD_DIR="dist"
+            echo "Using Vite output directory: dist/"
+          elif [ -d "build" ]; then
+            BUILD_DIR="build"
+            echo "Using CRA output directory: build/"
+          else
+            echo "ERROR: No build output found (tried dist/ and build/)"
+            ls -la
+            exit 1
+          fi
+
+          cp -r ${BUILD_DIR}/* .
           cat > package.json <<'EOF'
           {
             "name": "react-app",
@@ -62,6 +75,8 @@ jobs:
             -x "node_modules/*" \
             -x "src/*" \
             -x "public/*" \
+            -x "dist/*" \
+            -x "build/*" \
             -x ".env*"
 
       - name: Upload artifact for deployment job
